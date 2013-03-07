@@ -10,108 +10,160 @@ namespace Sql_Connect
     public class Sql_Connect 
     {
 
-        private string DBUser = "";
-        private string DBPass = "";
-        private string DBServer = "";
-        private string DBName = "";
-        private int DBPort = 1433;
-        private string DBInstance = "";
-        private string DBError = "";
-        private bool DBPersistance = false;
-        private bool DBConnected = false;
-        public string DBQuery = "";
+        public string DBUser = "sa";
+        public string DBPass = "";
+        public string DBServer = "(local)";
+        public string DBName = "TempDB";
+        
+        public int DBPort = 1433;
+        
+        public string DBInstance = "";
+        public string DBDomain = "";
 
-        public SqlConnection conn;
-        public SqlDataReader reader;
+        public bool DBIPAddress = false;
+        public bool DBPersistance = false;
+        public bool DBTrusted = false;
+        public bool DBConnected = false;
+        public bool DBIsInstance = false;
+        public bool DBExpress = false;
+        public bool DBMars = false;
+        public bool DBCE = false;
+
+        private string DBError = "";
+        private string DBString = "";
+
+        
+        
+        //public SqlConnection conn;
+
+        //public SqlConnection Make_Conn(string sqlConn)
+        //{
+        //    try 
+        //    {                 
+        //        conn.ConnectionString = sqlConn;
+        //        conn.Open();
+        //        return conn;
+        //    }
+        //    catch (SqlException e)
+        //    {
+        //        return null;
+        //    }
+        //}
+
+        public string Make_String()
+        {
+            try
+            {
+                string Connection = "";
+                if (DBTrusted == true)
+                {
+                    Connection = TrustedConnect();
+                }
+                else 
+                {
+                    //Normal Connection
+                    Connection = StandardConnect();
+                }
+
+                return Connection;
+            }
+            catch (Exception e)
+            {
+                return "Error: " + e.Message;
+            }
+        }
+
 
         /**
          *  Establish a Trusted Connection |[Optional] MARS Enabled |[Optional] From CE Device
          *  
-         *  @param Server string
-         *  @param Database string
-         *  @param MARS boolean
-         *  @param CEDevice boolean 
-         *  @param domain string    |CE Device
-         *  @param user string      |CE Device
-         *  @param pass string      |CE Device
          */
-        public bool TrustedConnect(string Server = "", string Database = "", bool MARS = false, bool CEDevice = false,
-                                   bool instance = false, string nameInstance = "",
-                                   string domain = "", string user = "", string pass = "") {
+        private string TrustedConnect() {
             try
             {
-                if (Server.Length > 0 && Database.Length > 0)
+                if (DBServer.Length > 0 && DBName.Length > 0)
                 {
-                    if (MARS == true)
+                    if (DBMars == true)
                     {
                         //MARS ENABLED
-                        conn.ConnectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";" +
+                        DBString = "Data Source=" + DBServer + ";Initial Catalog=" + DBName + ";" +
                                                 "Integrated Security=SSPI;MultipleActiveResultSets=true;";
                     }
-                    else if (CEDevice == true)
+                    else if (DBCE == true)
                     {
                         //CE Device connection
-                        conn.ConnectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";Integrated Security=SSPI;" +
-                                                "User ID=" + domain + "\\" + user + ";Password=" + pass + ";";
+                        DBString = "Data Source=" + DBServer + ";Initial Catalog=" + DBName + ";Integrated Security=SSPI;" +
+                                                "User ID=" + DBDomain + "\\" + DBUser + ";Password=" + DBPass + ";";
                     }
-                    else if (instance == true)
+                    else if (DBIsInstance == true)
                     {
                         //Instance connection
-                        conn.ConnectionString = "Server=" + Server + "\\" + nameInstance + ";Database=" + Database + ";Trusted_Connection=True;";
+                        DBString = "Server=" + DBServer + "\\" + DBInstance + ";Database=" + DBName + ";Trusted_Connection=True;";
                     }
                     else
                     {
                         //Normal Trusted Connection
-                        conn.ConnectionString = "Data Source=" + Server + ";Initial Catalog=" + Database + ";Integrated Security=SSPI;";
+                        DBString = "Data Source=" + DBServer + ";Initial Catalog=" + DBName + ";Integrated Security=SSPI;";
                     }
-                    conn.Open();
-                    return true;
+                    return DBString;
+                    
                 }
                 else
                 {
                     DBError = "The server/database is null";
-                    return false;
+                    return DBError;
                 }
             }
             catch (SqlException e)
             {
                 DBError = "Error " + e.ErrorCode + ": " + e.Errors;
-                return false;
+                return DBError;
             }
 
         }
+        
         /**
-         * Establish a Instance Connection
+         * StandardConnect
+         * Open the standard sql connection. 
          * 
-         * 
+         * @param User string
+         * @param Pass string
+         * @param Server string
+         * @param Name string
+         * @param Port int
+         * @param Instance boolean
+         * @param InstanceNm string
          */
-        public bool InstanceConnect() {
-            return false;
-        }
-        /**
-         * Establish a Express Instance Connection
-         * 
-         */
-        public bool InstanceExConnect() {
-            return false;
-        }
-
-        public bool StandardConnect(string User, string Pass,  string Server, string Name, int Port, bool Instance){
-            try{
-
-                //Standard Security
-                conn.ConnectionString = "Data Source=urServerAddress;Initial Catalog=urDataBase;" +
-                                        "User Id=urUsername;Password=urPassword";
-                //or
-                conn.ConnectionString = "Server=urServerAddress;Database=urDataBase;UserID=urUsername;Password=urPassword;" +
-                                        "Trusted_Connection=False;";
-                
-                conn.Open();
-
-                return true;            
-            }catch(SqlException sqle){
-                DBError = "Error " + sqle.ErrorCode + ": " + sqle.Errors;
-                return false;
+        private string StandardConnect(){
+            try{                
+                if (DBIsInstance == true  && DBUser.Length > 0 && DBServer.Length > 0 && DBIPAddress == false)
+                {
+                    DBString = "Data Source=" + DBServer + "//" + DBInstance + ";Initial Catalog=" + DBName + ";" +
+                                            "User Id=" + DBUser + ";Password=" + DBPass;
+                    /*
+                    DBString = "Server=" + Server + "//" + InstanceNm + ";Database=" + Name + ";UserID=" + User + ";Password=" + Pass + ";" +
+                                            "Trusted_Connection=False;";
+                     */
+                }
+                else if (DBUser.Length > 0 && DBServer.Length > 0 && DBIPAddress == false) 
+                {
+                    DBString = "Data Source=" + DBServer + ";Initial Catalog=" + DBName + ";" +
+                                            "User Id=" + DBUser + ";Password=" + DBPass;
+                    //or
+                    /*
+                    DBString = "Server=" + Server + ";Database=" + Name + ";UserID=" + User + ";Password=" + Pass + ";" +
+                                            "Trusted_Connection=False;";
+                     */
+                }
+                else if (DBIPAddress == true )
+                {
+                    DBString = "Data Source=" + DBServer + "," + DBPort + ";Network Library=DBMSSOCN;Initial Catalog=" + DBName + ";" +
+                               "User ID=" + DBUser + ";Password="+ DBPass +";";
+                }
+                return DBString;
+            }catch(Exception e){
+                DBError = "Error: " + e.Message;
+                return DBError;
             }
         }        
     }
